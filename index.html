@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Trainer">
+  <meta name="theme-color" content="#b11f4b">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Personal Trainer PWA</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    button, input, textarea, select { font: inherit; color: var(--cp-text); }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: calc(10px + env(safe-area-inset-top)) 16px 12px;
+      background: var(--cp-panel-strong);
+      border-bottom: 1px solid var(--cp-border);
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 16px; }
+    h1, h2, h3 { margin: 0; line-height: 1.15; }
+    h1 { font-size: 1.35rem; letter-spacing: -0.02em; }
+    h2 { font-size: 1.12rem; margin-bottom: 12px; }
+    h3 { font-size: 1rem; margin-bottom: 6px; }
+    p { margin: 0; color: var(--cp-text-muted); line-height: 1.45; }
+    label { display: grid; gap: 6px; color: var(--cp-text-muted); font-size: 0.9rem; }
+    input, textarea, select {
+      width: 100%;
+      min-height: 44px;
+      padding: 11px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    input[type="checkbox"] { width: auto; min-height: auto; }
+    .topline, .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .grid { display: grid; gap: 12px; }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stack { display: grid; gap: 10px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .card {
+      padding: 14px;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: 0 0 2px var(--cp-border), 0 1px 2px var(--cp-border);
+    }
+    .stat {
+      padding: 12px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+    }
+    .stat strong { display: block; margin-top: 4px; font-size: 1.25rem; color: var(--cp-text); }
+    .small { font-size: 0.86rem; }
+    .muted { color: var(--cp-text-muted); }
+    .notice { border-left: 4px solid var(--cp-warning); background: var(--cp-accent-soft); }
+    .danger-note { border-left-color: var(--cp-danger); }
+    .btn {
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+    }
+    .btn.primary {
+      border-color: var(--cp-accent);
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      font-weight: 700;
+    }
+    .btn.danger { border-color: var(--cp-danger); color: var(--cp-danger); }
+    .checkline { display: flex; align-items: center; gap: 8px; color: var(--cp-text); }
+    .exercise {
+      padding: 10px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+    }
+    .set-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto auto;
+      gap: 8px;
+      align-items: end;
+      margin-top: 8px;
+    }
+    .chart {
+      display: flex;
+      align-items: end;
+      gap: 6px;
+      height: 120px;
+      padding: 8px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+    }
+    .chart div {
+      flex: 1;
+      min-width: 12px;
+      background: var(--cp-accent);
+      border-radius: 0.625rem 0.625rem 0 0;
+      position: relative;
+    }
+    .chart div::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--cp-text-muted);
+      font-size: 0.7rem;
+    }
+    .tabs {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      background: var(--cp-panel-strong);
+      border-top: 1px solid var(--cp-border);
+    }
+    .tab {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      min-height: 54px;
+      border: 0;
+      border-radius: 0.625rem;
+      background: transparent;
+      color: var(--cp-text-muted);
+      font-size: 0.75rem;
+    }
+    .tab span { font-size: 1.15rem; }
+    .tab.active { background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 700; }
+    .toast {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      z-index: 30;
+      display: none;
+      padding: 12px;
+      background: var(--cp-panel-strong);
+      color: var(--cp-text);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      box-shadow: var(--cp-shadow);
+    }
+    .toast.show { display: block; }
+    .empty { text-align: center; padding: 22px 12px; color: var(--cp-text-muted); }
+    @media (max-width: 560px) {
+      .two, .set-row { grid-template-columns: 1fr; }
+      .tab { font-size: 0.68rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topline">
+      <div>
+        <h1>Personal Trainer</h1>
+        <p class="small" id="todayLine"></p>
+      </div>
+      <button class="btn" id="themeBtn" type="button">Theme</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="screen active" id="home">
+      <div class="grid">
+        <article class="card notice danger-note">
+          <h2>Safety first</h2>
+          <p>This app tracks workouts and flags your own constraints. It is not medical advice. Stop training and seek professional care for chest pain, fainting, severe shortness of breath, sudden weakness, or sharp/worsening pain.</p>
+        </article>
+        <div class="grid two">
+          <article class="stat"><span class="muted small">This week volume</span><strong id="weekVolume">0 kg</strong></article>
+          <article class="stat"><span class="muted small">Workouts logged</span><strong id="workoutCount">0</strong></article>
+        </div>
+        <div class="grid two">
+          <article class="stat"><span class="muted small">Target weight</span><strong id="targetWeight">77 kg</strong></article>
+          <article class="stat"><span class="muted small">This week adherence</span><strong id="weekAdherence">0 / 5</strong></article>
+        </div>
+        <article class="card">
+          <div class="row">
+            <div>
+              <h2>Today</h2>
+              <p id="readinessText">Complete your profile, choose a workout, then log each set.</p>
+            </div>
+            <button class="btn primary" type="button" data-go="log">Start</button>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Install on iPhone</h2>
+          <p>Put this folder on a small HTTPS/static host, open the page in Safari, tap Share, then Add to Home Screen. It stores your profile and logs locally in Safari and can export JSON/CSV backups.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" id="profile">
+      <article class="card">
+        <h2>Medical and training profile</h2>
+        <div class="stack">
+          <label>Name <input id="profileName" autocomplete="name" placeholder="Ahmed"></label>
+          <div class="grid two">
+            <label>Age <input id="age" inputmode="numeric" type="number" min="1" max="120"></label>
+            <label>Height cm <input id="heightCm" inputmode="decimal" type="number" min="80" max="250"></label>
+            <label>Last known weight kg <input id="lastWeightKg" inputmode="decimal" type="number" min="20" max="250" step="0.1"></label>
+            <label>Target weight kg <input id="targetWeightKg" inputmode="decimal" type="number" min="20" max="250" step="0.1"></label>
+          </div>
+          <div class="grid two">
+            <label>Training goal
+              <select id="goal">
+                <option>Strength</option><option>Fat loss</option><option>Muscle gain</option>
+                <option>Mobility and pain-free movement</option><option>General fitness</option>
+              </select>
+            </label>
+            <label>Experience
+              <select id="experience"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+            </label>
+          </div>
+          <label class="checkline"><input id="medicalClearance" type="checkbox"> I am cleared to exercise or will follow clinician guidance.</label>
+          <label>Medical notes and conditions <textarea id="medicalNotes" placeholder="Example: hypertension, disc issue, asthma, medication notes..."></textarea></label>
+          <label>Injuries, pain triggers, or restricted movements <textarea id="restrictions" placeholder="Example: avoid overhead pressing; knee pain on deep squats..."></textarea></label>
+          <label>Preferred pain ceiling during exercise
+            <select id="painCeiling">
+              <option value="2">0-2: stop if more than mild discomfort</option>
+              <option value="3">0-3: keep pain low and stable</option>
+              <option value="4">0-4: acceptable only if clinician approved</option>
+            </select>
+          </label>
+          <label>Clinician / physiotherapist restrictions still to confirm <textarea id="clinicianRestrictions" placeholder="Add any confirmed medical restrictions here."></textarea></label>
+          <button class="btn primary" id="saveProfile" type="button">Save profile</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="screen" id="plan">
+      <div class="grid">
+        <article class="card">
+          <div class="row">
+            <div><h2>Workout plan</h2><p>Pick a template. Adjust exercises based on your restrictions.</p></div>
+            <button class="btn" id="resetTemplates" type="button">Reset templates</button>
+          </div>
+        </article>
+        <div id="templateList" class="grid"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="log">
+      <article class="card">
+        <h2>Log workout</h2>
+        <div class="stack">
+          <label>Workout template <select id="templateSelect"></select></label>
+          <div class="grid two">
+            <label>Back/SI symptoms before session, 0-10 <input id="preBackPain" inputmode="decimal" type="number" min="0" max="10" step="0.5"></label>
+            <label>Energy, 1-5 <input id="energyRating" inputmode="numeric" type="number" min="1" max="5"></label>
+            <label>Sleep hours last night <input id="sleepHours" inputmode="decimal" type="number" min="0" max="14" step="0.25"></label>
+            <label>Session duration minutes <input id="sessionDuration" inputmode="numeric" type="number" min="1" max="90" value="45"></label>
+          </div>
+          <label class="checkline"><input id="radiatingSymptoms" type="checkbox"> Radiating pain, numbness, weakness, pelvic/testicular symptoms, or electric-shock pain today.</label>
+          <label>Session notes <textarea id="sessionNotes" placeholder="Energy, sleep, pain, form notes..."></textarea></label>
+          <label>Pain / warning flags <textarea id="painFlags" placeholder="Any pain above your ceiling, dizziness, unusual symptoms..."></textarea></label>
+          <div id="exerciseLog" class="grid"></div>
+          <button class="btn primary" id="saveWorkout" type="button">Save workout</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="screen" id="progress">
+      <div class="grid">
+        <article class="card">
+          <h2>Progress</h2>
+          <div class="grid two">
+            <article class="stat"><span class="muted small">Best estimated 1RM</span><strong id="bestLift">-</strong></article>
+            <article class="stat"><span class="muted small">Avg RPE last workout</span><strong id="avgRpe">-</strong></article>
+          </div>
+        </article>
+        <article class="card"><h3>Recent volume</h3><div class="chart" id="volumeChart"></div></article>
+        <article class="card"><h3>Coaching suggestion</h3><p id="coachSuggestion">Log a workout to receive progression guidance.</p></article>
+        <article class="card"><h3>History</h3><div id="historyList" class="grid"></div></article>
+      </div>
+    </section>
+
+    <section class="screen" id="data">
+      <div class="grid">
+        <article class="card">
+          <h2>Body, recovery and backup</h2>
+          <div class="stack">
+            <div class="grid two">
+              <label>Body weight kg <input id="metricWeight" inputmode="decimal" type="number" min="20" max="250" step="0.1"></label>
+              <label>Waist cm <input id="metricWaist" inputmode="decimal" type="number" min="40" max="200" step="0.1"></label>
+              <label>Sleep hours <input id="metricSleep" inputmode="decimal" type="number" min="0" max="14" step="0.25"></label>
+              <label>Recovery / energy, 1-5 <input id="metricEnergy" inputmode="numeric" type="number" min="1" max="5"></label>
+            </div>
+            <label>Back/SI symptom note <textarea id="metricSymptoms" placeholder="Before/during/next-day symptoms, radiating pain, medication context, etc."></textarea></label>
+            <button class="btn primary" id="saveMetric" type="button">Save body/recovery check-in</button>
+            <div id="metricHistory" class="grid"></div>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Data and backup</h2>
+          <p>Your data is stored in this browser on this device. Export regularly.</p>
+          <div class="grid two" style="margin-top:12px">
+            <button class="btn" id="exportJson" type="button">Export JSON</button>
+            <button class="btn" id="exportCsv" type="button">Export CSV</button>
+            <button class="btn" id="importJsonBtn" type="button">Import JSON</button>
+            <button class="btn danger" id="clearData" type="button">Clear data</button>
+          </div>
+          <input id="importJson" type="file" accept="application/json" hidden>
+        </article>
+        <article class="card">
+          <h2>Medical customization</h2>
+          <p>Paste only profile details you are comfortable using to customize exercise exclusions, progression limits, warmups, and warning prompts. Keep diagnosis decisions with your clinician.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Primary">
+    <button class="tab active" data-tab="home" type="button"><span>⌂</span>Home</button>
+    <button class="tab" data-tab="profile" type="button"><span>◎</span>Profile</button>
+    <button class="tab" data-tab="plan" type="button"><span>▤</span>Plan</button>
+    <button class="tab" data-tab="log" type="button"><span>＋</span>Log</button>
+    <button class="tab" data-tab="progress" type="button"><span>▧</span>Progress</button>
+    <button class="tab" data-tab="data" type="button"><span>⇩</span>Data</button>
+  </nav>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "personalTrainerPwa.v1";
+    const baselineProfile = {
+      name: "Ahmed",
+      age: "38",
+      heightCm: "173",
+      lastWeightKg: "81",
+      targetWeightKg: "77",
+      goal: "Muscle gain",
+      experience: "Beginner",
+      medicalClearance: false,
+      painCeiling: "3",
+      medicalNotes: "Private baseline: returning after more than one year away from consistent training. Confirm current weight, waist, medications, clinician restrictions, blood pressure/cardiovascular restrictions, and whether any previous radiating symptoms have resolved.",
+      restrictions: "Conservative starting precautions: avoid heavy spinal loading, heavy deadlifts, barbell back squats, unsupported bent-over rows if symptomatic, heavy standing overhead presses, loaded twisting, forceful spinal flexion/extension, breath-holding, maximal straining, sprinting, and automatic running progression. Prefer seated, supported, chest-supported, controlled pain-free movements. Stop any movement that causes increasing back pain, radiating symptoms, numbness, weakness, saddle-area numbness, or bladder/bowel changes.",
+      clinicianRestrictions: "Not confirmed yet. Follow clinician or physiotherapist guidance whenever it differs from this general plan."
+    };
+    const defaultTemplates = [
+      { id: "sun-upper-a", name: "Sunday - Upper Body A", focus: "Chest, back, side delts, biceps + core stability. 40-45 min.", exercises: [
+        { name: "Seated chest press machine OR supported dumbbell chest press", target: "2 x 10-12", caution: "Avoid excessive lumbar arching; stop for back, pelvic, shoulder, or chest pain." },
+        { name: "Lat pulldown", target: "2 x 10-12", caution: "Controlled pull; no behind-neck variation." },
+        { name: "Chest-supported dumbbell row", target: "2 x 10-12", caution: "Use machine row if chest support is unavailable; avoid unsupported bent-over rowing." },
+        { name: "Seated dumbbell lateral raise", target: "2 x 12-15", caution: "No swinging; keep neck relaxed." },
+        { name: "Seated dumbbell curl", target: "2 x 10-15", caution: "Keep torso stable." },
+        { name: "Dead bug", target: "2 x 5-8 per side", caution: "Slow trunk stability; stop if radiating pain appears." },
+        { name: "Bird dog", target: "2 x 5-6 per side", caution: "Shorten range if uncomfortable; avoid rotation." },
+        { name: "Glute bridge", target: "2 x 8-12", caution: "Avoid excessive lumbar arching." }
+      ]},
+      { id: "mon-cardio", name: "Monday - Cardio Foundation", focus: "Walking base. 25-35 min, effort 3-4/10.", exercises: [
+        { name: "Warm-up walk", target: "5 min easy", caution: "Stay conversational." },
+        { name: "Brisk walk", target: "20 min", caution: "Jogging is optional later, not automatic; no sprinting initially." },
+        { name: "Cool-down walk", target: "5 min easy", caution: "Stop if back/SI symptoms increase." }
+      ]},
+      { id: "tue-arms-shoulders", name: "Tuesday - Arms and Shoulders", focus: "Visible arms, side/rear delts + core stability. 40-45 min.", exercises: [
+        { name: "Seated lateral raises", target: "2 x 12-15", caution: "Light, controlled, no neck shrugging." },
+        { name: "Seated dumbbell curls", target: "2 x 10-15", caution: "No body swing." },
+        { name: "Seated hammer curls", target: "2 x 10-15", caution: "Keep torso supported where practical." },
+        { name: "Cable triceps pushdown", target: "2 x 10-15", caution: "Avoid leaning and bracing hard through the spine." },
+        { name: "Supported rear-delt fly", target: "2 x 12-15", caution: "Use chest support or machine support." },
+        { name: "Dead bug", target: "2 x 5-8 per side", caution: "Pain-free control only." },
+        { name: "Bird dog", target: "2 x 5-6 per side", caution: "Hips level; avoid back arching." },
+        { name: "Glute bridge", target: "2 x 8-12", caution: "Comfortable height only." }
+      ]},
+      { id: "wed-cardio-mobility", name: "Wednesday - Cardio + Mobility", focus: "20-30 min comfortable walking + gentle mobility.", exercises: [
+        { name: "Comfortable walk", target: "20-30 min", caution: "Talk-test pace; no forced jogging." },
+        { name: "Gentle pain-free mobility", target: "5-10 min", caution: "No sit-ups, Russian twists, aggressive hamstring stretching, or repetitive spinal flexion." },
+        { name: "Optional core stability", target: "1 set each if recovery is good", caution: "Skip if fatigue or symptoms are up." }
+      ]},
+      { id: "thu-back-traps-arms", name: "Thursday - Back, Traps and Arms", focus: "Back, traps, triceps + core stability. 40-45 min.", exercises: [
+        { name: "Lat pulldown", target: "2 x 10-12", caution: "Controlled reps; stop if symptoms radiate." },
+        { name: "Chest-supported row", target: "2 x 10-12", caution: "Support torso; avoid unsupported bent-over rows." },
+        { name: "Seated lateral raises", target: "2 x 12-15", caution: "No swinging." },
+        { name: "Light seated dumbbell shrugs", target: "2 x 12-15", caution: "Lift shoulders without rolling; keep head/neck neutral; omit if neck/back/pelvic discomfort." },
+        { name: "Cable triceps pushdown", target: "2 x 10-15", caution: "Controlled; avoid breath-holding." },
+        { name: "Dead bug", target: "2 x 5-8 per side", caution: "Stop if radiating pain appears." },
+        { name: "Bird dog", target: "2 x 5-6 per side", caution: "Stable and slow." },
+        { name: "Glute bridge", target: "2 x 8-12", caution: "No excessive lumbar arch." }
+      ]}
+    ];
+    const $ = (id) => document.getElementById(id);
+    const state = loadState();
+
+    function loadState() {
+      const empty = { profile: baselineProfile, templates: defaultTemplates, workouts: [], metrics: [] };
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return saved && typeof saved === "object" ? {
+          profile: { ...baselineProfile, ...(saved.profile || {}) },
+          templates: Array.isArray(saved.templates) && saved.templates.length ? saved.templates : defaultTemplates,
+          workouts: Array.isArray(saved.workouts) ? saved.workouts : [],
+          metrics: Array.isArray(saved.metrics) ? saved.metrics : []
+        } : empty;
+      } catch { return empty; }
+    }
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      render();
+    }
+    function toast(message) {
+      $("toast").textContent = message;
+      $("toast").classList.add("show");
+      setTimeout(() => $("toast").classList.remove("show"), 2200);
+    }
+    function tab(id) {
+      document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === id));
+      scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function esc(value) {
+      return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    }
+    function volumeOf(workout) {
+      return workout.exercises.reduce((total, ex) => total + ex.sets.reduce((sum, set) => sum + ((Number(set.weight) || 0) * (Number(set.reps) || 0)), 0), 0);
+    }
+    function oneRm(set) {
+      const weight = Number(set.weight) || 0;
+      const reps = Number(set.reps) || 0;
+      return weight && reps ? Math.round(weight * (1 + reps / 30)) : 0;
+    }
+    function render() {
+      $("todayLine").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+      renderHome(); renderProfile(); renderPlan(); renderLog(); renderProgress(); renderMetrics();
+    }
+    function renderHome() {
+      const since = new Date();
+      since.setDate(since.getDate() - 7);
+      const weekVolume = state.workouts.filter((w) => new Date(w.date) >= since).reduce((sum, w) => sum + volumeOf(w), 0);
+      $("weekVolume").textContent = `${Math.round(weekVolume).toLocaleString()} kg`;
+      $("workoutCount").textContent = String(state.workouts.length);
+      $("targetWeight").textContent = `${state.profile.targetWeightKg || "77"} kg`;
+      const thisWeekSessions = state.workouts.filter((w) => new Date(w.date) >= since).length;
+      $("weekAdherence").textContent = `${Math.min(thisWeekSessions, 5)} / 5`;
+      const name = state.profile.name ? `${state.profile.name}, ` : "";
+      $("readinessText").textContent = state.profile.medicalClearance ? `${name}profile saved. Keep pain within your selected ceiling and progress gradually.` : `${name}save your safety profile before heavy training.`;
+    }
+    function renderProfile() {
+      $("profileName").value = state.profile.name || "";
+      $("age").value = state.profile.age || "";
+      $("heightCm").value = state.profile.heightCm || "";
+      $("lastWeightKg").value = state.profile.lastWeightKg || "";
+      $("targetWeightKg").value = state.profile.targetWeightKg || "";
+      $("goal").value = state.profile.goal || "Strength";
+      $("experience").value = state.profile.experience || "Beginner";
+      $("medicalClearance").checked = Boolean(state.profile.medicalClearance);
+      $("medicalNotes").value = state.profile.medicalNotes || "";
+      $("restrictions").value = state.profile.restrictions || "";
+      $("painCeiling").value = state.profile.painCeiling || "3";
+      $("clinicianRestrictions").value = state.profile.clinicianRestrictions || "";
+    }
+    function renderPlan() {
+      $("templateList").innerHTML = state.templates.map((template) => `
+        <article class="card">
+          <div class="row"><div><h3>${esc(template.name)}</h3><p>${esc(template.focus)}</p></div><button class="btn primary" type="button" data-start-template="${template.id}">Use</button></div>
+          <div class="stack" style="margin-top:10px">${template.exercises.map((ex) => `<div class="exercise"><strong>${esc(ex.name)}</strong><p class="small">${esc(ex.target)} · ${esc(ex.caution)}</p></div>`).join("")}</div>
+        </article>`).join("");
+    }
+    function renderLog() {
+      $("templateSelect").innerHTML = state.templates.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+      if (!$("templateSelect").value && state.templates[0]) $("templateSelect").value = state.templates[0].id;
+      renderExerciseLog();
+    }
+    function setRow(exIndex, setIndex) {
+      return `<div class="set-row" data-set-row>
+        <label>Load kg / min <input inputmode="decimal" type="number" min="0" step="0.5" data-weight="${exIndex}-${setIndex}"></label>
+        <label>Reps / distance <input inputmode="decimal" type="number" min="0" step="0.1" data-reps="${exIndex}-${setIndex}"></label>
+        <label>RPE <input inputmode="decimal" type="number" min="1" max="10" step="0.5" data-rpe="${exIndex}-${setIndex}"></label>
+        <label>Rest sec <input inputmode="numeric" type="number" min="0" step="5" data-rest="${exIndex}-${setIndex}"></label>
+        <label class="checkline"><input type="checkbox" data-discomfort="${exIndex}-${setIndex}"> Discomfort</label>
+        <button class="btn danger" type="button" data-remove-set>Remove</button>
+      </div>`;
+    }
+    function repRange(target) {
+      const match = String(target || "").match(/(\d+)\s*(?:-|x|to)\s*(\d+)/i);
+      if (match) return { min: Number(match[1]), max: Number(match[2]) };
+      const single = String(target || "").match(/(\d+)/);
+      return single ? { min: Number(single[1]), max: Number(single[1]) } : { min: 8, max: 12 };
+    }
+    function loadIncrement(load) {
+      if (load < 10) return 0.5;
+      if (load < 30) return 1;
+      return 2.5;
+    }
+    function exerciseHistory(exerciseName) {
+      return [...state.workouts]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .flatMap((workout) => workout.exercises
+          .filter((exercise) => exercise.name === exerciseName)
+          .map((exercise) => ({ workout, exercise })));
+    }
+    function recommendationFor(exercise) {
+      const history = exerciseHistory(exercise.name);
+      if (!history.length) return "First log: choose a light load you can control with 3-4 reps in reserve.";
+      const latest = history[0];
+      const sets = latest.exercise.sets.filter((set) => Number(set.weight) || Number(set.reps));
+      if (!sets.length) return "Repeat the same target and record load/reps so the coach can learn.";
+      const heaviest = Math.max(...sets.map((set) => Number(set.weight) || 0));
+      const avgRpeValues = sets.map((set) => Number(set.rpe)).filter(Boolean);
+      const avgRpe = avgRpeValues.length ? avgRpeValues.reduce((a, b) => a + b, 0) / avgRpeValues.length : 0;
+      const range = repRange(exercise.target);
+      const topReached = sets.every((set) => (Number(set.reps) || 0) >= range.max);
+      const belowRange = sets.some((set) => (Number(set.reps) || 0) < range.min);
+      const discomfort = latest.workout.radiatingSymptoms || latest.workout.painFlags || sets.some((set) => set.discomfort);
+      if (discomfort) return `Recommendation: keep ${heaviest || "current"} kg or reduce 5-10%; do not progress until symptoms are stable.`;
+      if (avgRpe >= 9 || belowRange) return `Recommendation: repeat ${heaviest || "current"} kg and aim for cleaner reps in the target range.`;
+      if (topReached && avgRpe && avgRpe <= 8) return `Recommendation: try ${heaviest + loadIncrement(heaviest)} kg next time, only if technique is clean and pain stays within your ceiling.`;
+      return `Recommendation: keep ${heaviest || "current"} kg and add reps before increasing weight.`;
+    }
+    function renderExerciseLog() {
+      const template = state.templates.find((t) => t.id === $("templateSelect").value) || state.templates[0];
+      $("exerciseLog").innerHTML = template ? template.exercises.map((ex, exIndex) => `
+        <div class="exercise" data-exercise-index="${exIndex}">
+          <div class="row"><div><strong>${esc(ex.name)}</strong><p class="small">${esc(ex.target)} · ${esc(ex.caution)}</p><p class="small"><strong>Smart coach:</strong> ${esc(recommendationFor(ex))}</p></div><button class="btn" type="button" data-add-set="${exIndex}">Add set</button></div>
+          <div class="set-list">${setRow(exIndex, 0)}${setRow(exIndex, 1)}${setRow(exIndex, 2)}</div>
+        </div>`).join("") : `<div class="empty">No workout templates yet.</div>`;
+    }
+    function renderProgress() {
+      const workouts = [...state.workouts].sort((a, b) => new Date(b.date) - new Date(a.date));
+      let best = { lift: "-", value: 0 };
+      workouts.forEach((workout) => workout.exercises.forEach((ex) => ex.sets.forEach((set) => {
+        const estimate = oneRm(set);
+        if (estimate > best.value) best = { lift: `${ex.name}: ${estimate} kg`, value: estimate };
+      })));
+      $("bestLift").textContent = best.lift;
+      const latest = workouts[0];
+      const latestRpes = latest ? latest.exercises.flatMap((ex) => ex.sets.map((s) => Number(s.rpe)).filter(Boolean)) : [];
+      $("avgRpe").textContent = latestRpes.length ? (latestRpes.reduce((a, b) => a + b, 0) / latestRpes.length).toFixed(1) : "-";
+      renderChart(workouts.slice(0, 8).reverse());
+      $("coachSuggestion").textContent = coachingSuggestion(workouts[0]);
+      $("historyList").innerHTML = workouts.length ? workouts.map((workout) => `<article class="exercise"><div class="row"><div><strong>${esc(workout.templateName)}</strong><p class="small">${new Date(workout.date).toLocaleString()} · ${Math.round(volumeOf(workout)).toLocaleString()} kg volume · ${esc(workout.duration || "-")} min</p></div><button class="btn danger" data-delete-workout="${workout.id}" type="button">Delete</button></div>${workout.painFlags ? `<p class="small" style="margin-top:8px">Flags: ${esc(workout.painFlags)}</p>` : ""}${workout.radiatingSymptoms ? `<p class="small" style="margin-top:8px">Radiating/neurological symptoms marked: do not progress automatically.</p>` : ""}</article>`).join("") : `<div class="empty">No workouts logged yet.</div>`;
+    }
+    function coachingSuggestion(latest) {
+      if (!latest) return "Log a workout to receive progression guidance.";
+      if (latest.radiatingSymptoms || latest.painFlags) return "Maintain or reduce load. Do not progress exercises that caused increasing or radiating symptoms; consider clinician reassessment if symptoms escalate.";
+      const hardSets = latest.exercises.flatMap((ex) => ex.sets).filter((set) => Number(set.rpe) >= 9);
+      if (hardSets.length) return "Keep the same load next time or reduce slightly. The comeback phase should leave 2-4 reps in reserve, not failure.";
+      return "If technique was clean, pain stayed within your ceiling, and all sets reached the top of the rep range, progress reps first; increase load only by the smallest practical increment.";
+    }
+    function renderChart(workouts) {
+      const chart = $("volumeChart");
+      if (!workouts.length) { chart.innerHTML = `<div style="height:2%; background:var(--cp-border)" data-label="-"></div>`; return; }
+      const volumes = workouts.map(volumeOf);
+      const max = Math.max(...volumes, 1);
+      chart.innerHTML = workouts.map((w, i) => `<div style="height:${Math.max(5, Math.round((volumes[i] / max) * 100))}%" data-label="${new Date(w.date).toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}" title="${Math.round(volumes[i])} kg"></div>`).join("");
+    }
+    function renderMetrics() {
+      const metrics = [...state.metrics].sort((a, b) => new Date(b.date) - new Date(a.date));
+      $("metricHistory").innerHTML = metrics.length ? metrics.slice(0, 6).map((metric) => `
+        <article class="exercise">
+          <strong>${new Date(metric.date).toLocaleDateString()}</strong>
+          <p class="small">Weight ${esc(metric.weightKg || "-")} kg · Waist ${esc(metric.waistCm || "-")} cm · Sleep ${esc(metric.sleepHours || "-")}h · Energy ${esc(metric.energy || "-")}/5</p>
+          ${metric.symptoms ? `<p class="small">${esc(metric.symptoms)}</p>` : ""}
+        </article>
+      `).join("") : `<div class="empty">No body or recovery check-ins yet.</div>`;
+    }
+    function collectWorkout() {
+      const template = state.templates.find((t) => t.id === $("templateSelect").value);
+      const exercises = [...document.querySelectorAll("[data-exercise-index]")].map((node) => {
+        const exercise = template.exercises[Number(node.dataset.exerciseIndex)];
+        const sets = [...node.querySelectorAll("[data-set-row]")].map((row) => ({
+          weight: row.querySelector("[data-weight]")?.value || "",
+          reps: row.querySelector("[data-reps]")?.value || "",
+          rpe: row.querySelector("[data-rpe]")?.value || "",
+          restSec: row.querySelector("[data-rest]")?.value || "",
+          discomfort: Boolean(row.querySelector("[data-discomfort]")?.checked)
+        })).filter((set) => Number(set.weight) || Number(set.reps) || Number(set.rpe) || Number(set.restSec) || set.discomfort);
+        return { name: exercise.name, sets };
+      }).filter((ex) => ex.sets.length);
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date: new Date().toISOString(),
+        templateId: template.id,
+        templateName: template.name,
+        preBackPain: $("preBackPain").value,
+        energy: $("energyRating").value,
+        sleepHours: $("sleepHours").value,
+        duration: $("sessionDuration").value,
+        radiatingSymptoms: $("radiatingSymptoms").checked,
+        notes: $("sessionNotes").value.trim(),
+        painFlags: $("painFlags").value.trim(),
+        exercises
+      };
+    }
+    function download(name, text, type) {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    }
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("button");
+      if (!target) return;
+      if (target.dataset.tab) tab(target.dataset.tab);
+      if (target.dataset.go) tab(target.dataset.go);
+      if (target.dataset.startTemplate) { tab("log"); $("templateSelect").value = target.dataset.startTemplate; renderExerciseLog(); }
+      if (target.dataset.addSet) {
+        const list = target.closest(".exercise").querySelector(".set-list");
+        list.insertAdjacentHTML("beforeend", setRow(target.dataset.addSet, list.querySelectorAll("[data-set-row]").length));
+      }
+      if (target.hasAttribute("data-remove-set")) target.closest("[data-set-row]").remove();
+      if (target.dataset.deleteWorkout) {
+        const index = state.workouts.findIndex((w) => w.id === target.dataset.deleteWorkout);
+        if (index >= 0) { state.workouts.splice(index, 1); saveState(); toast("Workout deleted."); }
+      }
+    });
+    $("saveProfile").addEventListener("click", () => {
+      state.profile = {
+        name: $("profileName").value.trim(),
+        age: $("age").value,
+        heightCm: $("heightCm").value,
+        lastWeightKg: $("lastWeightKg").value,
+        targetWeightKg: $("targetWeightKg").value,
+        goal: $("goal").value,
+        experience: $("experience").value,
+        medicalClearance: $("medicalClearance").checked,
+        medicalNotes: $("medicalNotes").value.trim(),
+        restrictions: $("restrictions").value.trim(),
+        painCeiling: $("painCeiling").value,
+        clinicianRestrictions: $("clinicianRestrictions").value.trim()
+      };
+      saveState(); toast("Profile saved locally.");
+    });
+    $("saveMetric").addEventListener("click", () => {
+      const metric = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date: new Date().toISOString(),
+        weightKg: $("metricWeight").value,
+        waistCm: $("metricWaist").value,
+        sleepHours: $("metricSleep").value,
+        energy: $("metricEnergy").value,
+        symptoms: $("metricSymptoms").value.trim()
+      };
+      if (!metric.weightKg && !metric.waistCm && !metric.sleepHours && !metric.energy && !metric.symptoms) {
+        toast("Add at least one metric before saving.");
+        return;
+      }
+      state.metrics.push(metric);
+      $("metricWeight").value = "";
+      $("metricWaist").value = "";
+      $("metricSleep").value = "";
+      $("metricEnergy").value = "";
+      $("metricSymptoms").value = "";
+      saveState();
+      toast("Check-in saved.");
+    });
+    $("templateSelect").addEventListener("change", renderExerciseLog);
+    $("resetTemplates").addEventListener("click", () => { state.templates = defaultTemplates; saveState(); toast("Templates reset."); });
+    $("saveWorkout").addEventListener("click", () => {
+      const workout = collectWorkout();
+      if (!workout.exercises.length) { toast("Add at least one set before saving."); return; }
+      state.workouts.push(workout);
+      $("preBackPain").value = "";
+      $("energyRating").value = "";
+      $("sleepHours").value = "";
+      $("sessionDuration").value = "45";
+      $("radiatingSymptoms").checked = false;
+      $("sessionNotes").value = "";
+      $("painFlags").value = "";
+      saveState(); renderExerciseLog(); toast("Workout saved."); tab("progress");
+    });
+    $("exportJson").addEventListener("click", () => download("personal-trainer-backup.json", JSON.stringify(state, null, 2), "application/json"));
+    $("exportCsv").addEventListener("click", () => {
+      const rows = [["date", "template", "exercise", "set", "load_kg_or_minutes", "reps_or_distance", "rpe", "rest_sec", "discomfort", "duration_min", "pre_back_pain", "energy", "sleep_hours", "radiating_symptoms", "notes", "pain_flags"]];
+      state.workouts.forEach((w) => w.exercises.forEach((ex) => ex.sets.forEach((set, i) => rows.push([w.date, w.templateName, ex.name, i + 1, set.weight, set.reps, set.rpe, set.restSec, set.discomfort, w.duration, w.preBackPain, w.energy, w.sleepHours, w.radiatingSymptoms, w.notes, w.painFlags]))));
+      download("trainer-progress.csv", rows.map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n"), "text/csv");
+    });
+    $("importJsonBtn").addEventListener("click", () => $("importJson").click());
+    $("importJson").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const imported = JSON.parse(await file.text());
+      state.profile = { ...baselineProfile, ...(imported.profile || {}) };
+      state.templates = imported.templates || defaultTemplates;
+      state.workouts = imported.workouts || [];
+      state.metrics = imported.metrics || [];
+      saveState(); toast("Backup imported.");
+    });
+    $("clearData").addEventListener("click", () => {
+      const typed = prompt("Type CLEAR to delete all local trainer data.");
+      if (typed !== "CLEAR") return;
+      localStorage.removeItem(STORAGE_KEY);
+      state.profile = baselineProfile; state.templates = defaultTemplates; state.workouts = []; state.metrics = [];
+      saveState(); toast("Local data cleared.");
+    });
+    $("themeBtn").addEventListener("click", () => {
+      document.documentElement.setAttribute("data-theme", document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    });
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+    render();
+  </script>
+</body>
+</html>
