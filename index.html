@@ -161,6 +161,32 @@
       border: 1px solid var(--cp-border);
       border-radius: 0.625rem;
     }
+    .demo-box {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px dashed var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+    .demo-media {
+      display: grid;
+      place-items: center;
+      min-height: 132px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      overflow: hidden;
+      text-align: center;
+    }
+    .demo-media img {
+      display: block;
+      width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      background: var(--cp-surface);
+    }
     .set-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1fr auto auto;
@@ -514,7 +540,7 @@
     }
     function render() {
       $("todayLine").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-      renderHome(); renderProfile(); renderPlan(); renderLog(); renderProgress(); renderMetrics();
+      renderHome(); renderProfile(); renderPlan(); renderLog(); renderProgress(); renderMetrics(); wireDemoImages();
     }
     function renderHome() {
       const since = new Date();
@@ -542,11 +568,83 @@
       $("painCeiling").value = state.profile.painCeiling || "3";
       $("clinicianRestrictions").value = state.profile.clinicianRestrictions || "";
     }
+    function exerciseSlug(name) {
+      return String(name || "")
+        .toLowerCase()
+        .replace(/\bor\b/g, " ")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 60);
+    }
+    function demoCueFor(name) {
+      const lower = String(name || "").toLowerCase();
+      if (lower.includes("chest press")) return "Keep torso supported, ribs down, and press without over-arching the lower back.";
+      if (lower.includes("lat pulldown")) return "Pull to upper chest, keep neck relaxed, and avoid leaning far back.";
+      if (lower.includes("row")) return "Use chest support when available; pull elbows back without twisting or lumbar extension.";
+      if (lower.includes("lateral raise")) return "Use light weight, soft elbows, and raise only to a pain-free shoulder height.";
+      if (lower.includes("curl")) return "Keep elbows close and torso quiet; do not swing the body.";
+      if (lower.includes("triceps")) return "Keep elbows pinned, exhale smoothly, and avoid hard bracing.";
+      if (lower.includes("rear-delt")) return "Move from the shoulders, not the lower back; keep chest supported.";
+      if (lower.includes("shrug")) return "Lift shoulders up without rolling them; keep head and neck neutral.";
+      if (lower.includes("dead bug")) return "Move slowly while keeping trunk stable; shorten the range if the back arches.";
+      if (lower.includes("bird dog")) return "Reach long with hips level; avoid rotation and back arching.";
+      if (lower.includes("glute bridge")) return "Squeeze glutes and lift to a comfortable height without lumbar over-arching.";
+      if (lower.includes("walk")) return "Use conversational pace and smooth stride; stop if symptoms increase.";
+      if (lower.includes("mobility")) return "Keep it gentle and pain-free; avoid aggressive spinal flexion or twisting.";
+      return "Move slowly, stay supported where practical, and stop if symptoms increase.";
+    }
+    function demoBlock(exercise) {
+      const slug = exerciseSlug(exercise.name);
+      const src = exercise.demoGif || `assets/demos/${slug}.gif`;
+      return `
+        <details class="demo-box" data-demo-key="${esc(slug)}" data-demo-src="${esc(src)}">
+          <summary><strong>Demo and form cues</strong></summary>
+          <div class="demo-media">
+            <p class="small" data-demo-fallback>GIF slot ready. Add a file named <strong>${slug}.gif</strong> in <strong>assets/demos</strong> and it will appear here automatically.</p>
+          </div>
+          <p class="small">${esc(demoCueFor(exercise.name))}</p>
+        </details>
+      `;
+    }
+    function wireDemoImages() {
+      document.querySelectorAll("[data-demo-src]").forEach((details) => {
+        if (details.dataset.wired) return;
+        details.dataset.wired = "true";
+        details.addEventListener("toggle", async () => {
+          if (!details.open || details.dataset.checked) return;
+          details.dataset.checked = "true";
+          const src = details.dataset.demoSrc;
+          const key = details.dataset.demoKey;
+          try {
+            const manifest = await demoManifest();
+            if (!manifest[key]) return;
+            const media = details.querySelector(".demo-media");
+            const fallback = details.querySelector("[data-demo-fallback]");
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "Exercise demo GIF";
+            if (fallback) fallback.hidden = true;
+            media.prepend(img);
+          } catch {}
+        });
+      });
+    }
+    let demoManifestCache;
+    async function demoManifest() {
+      if (demoManifestCache) return demoManifestCache;
+      try {
+        const response = await fetch("assets/demos/manifest.json", { cache: "no-store" });
+        demoManifestCache = response.ok ? await response.json() : {};
+      } catch {
+        demoManifestCache = {};
+      }
+      return demoManifestCache;
+    }
     function renderPlan() {
       $("templateList").innerHTML = state.templates.map((template) => `
         <article class="card">
           <div class="row"><div><h3>${esc(template.name)}</h3><p>${esc(template.focus)}</p></div><button class="btn primary" type="button" data-start-template="${template.id}">Use</button></div>
-          <div class="stack" style="margin-top:10px">${template.exercises.map((ex) => `<div class="exercise"><strong>${esc(ex.name)}</strong><p class="small">${esc(ex.target)} · ${esc(ex.caution)}</p></div>`).join("")}</div>
+          <div class="stack" style="margin-top:10px">${template.exercises.map((ex) => `<div class="exercise"><strong>${esc(ex.name)}</strong><p class="small">${esc(ex.target)} · ${esc(ex.caution)}</p>${demoBlock(ex)}</div>`).join("")}</div>
         </article>`).join("");
     }
     function renderLog() {
@@ -605,6 +703,7 @@
       $("exerciseLog").innerHTML = template ? template.exercises.map((ex, exIndex) => `
         <div class="exercise" data-exercise-index="${exIndex}">
           <div class="row"><div><strong>${esc(ex.name)}</strong><p class="small">${esc(ex.target)} · ${esc(ex.caution)}</p><p class="small"><strong>Smart coach:</strong> ${esc(recommendationFor(ex))}</p></div><button class="btn" type="button" data-add-set="${exIndex}">Add set</button></div>
+          ${demoBlock(ex)}
           <div class="set-list">${setRow(exIndex, 0)}${setRow(exIndex, 1)}${setRow(exIndex, 2)}</div>
         </div>`).join("") : `<div class="empty">No workout templates yet.</div>`;
     }
